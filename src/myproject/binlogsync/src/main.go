@@ -2,12 +2,12 @@ package main
 
 import (
 	"./binlogmgr"
-	"./logger"
-	//	"./sync"
-	//	"./tair"
 	"./fdfsmgr"
-	//	"./transfer"
+	"./logger"
 	"./mysqlmgr"
+	"./sync"
+	"./tair"
+	"./transfer"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -87,11 +87,11 @@ func main() {
 
 	d := logger.GetLogger(cfg.LogPath, "binlog")
 	r := logger.GetLogger(cfg.LogPath, "mysqlmgr")
-	//	c := logger.GetLogger(cfg.LogPath, "tair")
+	c := logger.GetLogger(cfg.LogPath, "tair")
 	f := logger.GetLogger(cfg.LogPath, "fdfs")
-	//	s := logger.GetLogger(cfg.LogPath, "sync")
+	s := logger.GetLogger(cfg.LogPath, "sync")
 
-	//	g := logger.GetLogger(cfg.LogPath, "clustermgr")
+	g := logger.GetLogger(cfg.LogPath, "clustermgr")
 
 	pBinlog := binlogmgr.NewBinLogMgr(cfg.MysqlIp, cfg.MsqlPort,
 		cfg.MysqlUserName, cfg.MysqlPassword, cfg.ServerId, cfg.EachSyncNum,
@@ -106,38 +106,41 @@ func main() {
 		l.Errorf("NewClient fail")
 		return
 	}
-	//
-	//	pTair := tair.NewTairClient(cfg.TairServer, cfg.TairClient, c)
-	//	if pTair == nil {
-	//		l.Errorf("NewTairClient fail")
-	//		return
-	//	}
-	//
-	//	pClusterMgr := transfer.NewClusterMgr(pFdfsmgr, pTair, cfg.FdfsBackupIp, g)
-	//	if pClusterMgr == nil {
-	//		l.Errorf("NewClusterMgr fail")
-	//		return
-	//	}
-	//
-	pMysqlMgr := mysqlmgr.NewMysqlMgr(cfg.MysqlDsn, cfg.Dbconns, cfg.Dbidle, cfg.FdfsBackupIp, r)
-    if pMysqlMgr == nil {
-        l.Errorf("NewMysqlMgr fail")
-        return
-    }
-	//
-	//	pSync := sync.NewSyncMgr(cfg.UploadServer, pBinlog, pClusterMgr, s)
-	//	if pSync == nil {
-	//		l.Errorf("NewSyncMgr fail")
-	//		return
-	//	}
 
-	//	pSync.SetFlag(cfg.IsOpen)
-	//
-	//	go pSync.IncreaseSync()
-	//	go pSync.TotalSync()
+	pTair := tair.NewTairClient(cfg.TairServer, cfg.TairClient, c)
+	if pTair == nil {
+		l.Errorf("NewTairClient fail")
+		return
+	}
+
+	pTransferMgr := transfer.NewTransferMgr(pFdfsmgr, pTair, cfg.FdfsBackupIp, g)
+	if pTransferMgr == nil {
+		l.Errorf("TransferMgr fail")
+		return
+	}
+
+	pMysqlMgr := mysqlmgr.NewMysqlMgr(cfg.MysqlDsn, cfg.Dbconns, cfg.Dbidle, cfg.FdfsBackupIp, r)
+	if pMysqlMgr == nil {
+		l.Errorf("NewMysqlMgr fail")
+		return
+	}
+
+	pSync := sync.NewSyncMgr(cfg.UploadServer, pBinlog, pTransferMgr, pMysqlMgr, s)
+	if pSync == nil {
+		l.Errorf("NewSyncMgr fail")
+		return
+	}
+
+	pSync.SetFlag(cfg.IsOpen)
+	go pSync.IncreaseSync()
 
 	m := martini.Classic()
-	//	m.Post("/fdfsreceive", pClusterMgr.FastdfsPutData)
-	//	m.Post("/mysqlreceive", pMysqlMgr.MysqlReceive)
+	
+	m.Post("/fdfsput", pTransferMgr.FastdfsPutData)
+	m.Post("/fdfsget", pTransferMgr.FastdfsGetData)
+	m.Post("/fdfsdelete", pTransferMgr.FastdfsDeleteData)
+	
+	m.Post("/mysqlreceive", pMysqlMgr.MysqlReceive)
+	
 	m.Run()
 }

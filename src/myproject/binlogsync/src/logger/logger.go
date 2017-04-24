@@ -14,7 +14,7 @@ func GetLogger(dir string, name string) *log.Logger {
 		MaxSize:     100 << 20,
 		MaxDuration: 1 * time.Hour,
 	}
-	formatter := &common.ClassicFormatter{
+	formatter := &log.ClassicFormatter{
 		TimestampFormat: "2006-01-02 15:04:05",
 		FieldsDelimiter: ", ",
 	}

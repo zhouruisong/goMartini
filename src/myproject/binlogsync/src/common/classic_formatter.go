@@ -22,7 +22,8 @@ func (f *ClassicFormatter) Format(entry *log.Entry) ([]byte, error) {
 		f.FieldsDelimiter = " "
 	}
 	fmt.Fprintf(b, "[%s] [%s] %s", entry.Time.Format(f.TimestampFormat),
-		entry.Level.String(), entry.Message)
+		entry.Level.String(), entry.Data["file"], entry.Data["line"], entry.Data["func"], 
+		entry.Message)
 	// sort fields
 	keys := make([]string, 0, len(entry.Data))
 	for key := range entry.Data {

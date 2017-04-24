@@ -1,29 +1,30 @@
 package mysqlmgr
 
 import (
-	"fmt"
-	"strings"
+	"../protocal"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
-func (mgr *MysqlMgr)SendMysqlbuff(data *DataDetail, tablename string) int {
+func (mgr *MysqlMgr) SendMysqlbuff(data *protocal.DbInfo, tablename string) int {
 	// backup data need set to 1
-	data.info.IsBackup = 1
-	
-	msg := MsgInsertBody {
+	data.IsBackup = 1
+
+	msg := protocal.MsgInsertBody{
 		TableName: tablename,
-		Data: *data,
+		Data:      *data,
 	}
-	
+
 	buf, err := json.Marshal(msg)
 	if err != nil {
 		mgr.Logger.Errorf("Marshal failed.err:%v, TableName: %+v", err, msg.TableName)
 		return -1
 	}
-	
+
 	url := fmt.Sprintf("http://%v/mysqlreceive", mgr.FdfsBackup)
 	ip := strings.Split(mgr.FdfsBackup, ":")
 	hosturl := fmt.Sprintf("application/json;charset=utf-8;hostname:%v", ip[0])
@@ -34,7 +35,7 @@ func (mgr *MysqlMgr)SendMysqlbuff(data *DataDetail, tablename string) int {
 		mgr.Logger.Errorf("http post return failed.err: %v , Filename: %+v", err, msg.TableName)
 		return -1
 	}
-	
+
 	result, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
@@ -42,12 +43,12 @@ func (mgr *MysqlMgr)SendMysqlbuff(data *DataDetail, tablename string) int {
 		return -1
 	}
 
-	var ret MsgInsertRet
+	var ret protocal.MsgInsertRet
 	err = json.Unmarshal(result, &ret)
 	if err != nil {
 		mgr.Logger.Errorf("cannot decode req body Error, err:%v", err)
 		return -1
 	}
-	
+
 	return 0
 }

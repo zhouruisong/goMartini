@@ -5,43 +5,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-/////////////////////////////////////////////////////////
-// 向fastdfs存储数据请求接口
-type CentreUploadFile struct {
-	Taskid   string     `json:"taskid"`
-	Index    IndexInfo   `json:"index"`
-	Content  []byte     `json:"content"`
-}
-
-// 向fastdfs存储数据返回接口
-type RetCentreUploadFile struct {
-	Errno  int        `json:"code"`
-	Errmsg string     `json:"message"`
-	Id     string     `json:"id"`
-}
-
-// 向fastdfs下载数据请求接口
-type CentreDownloadFile struct {
-	Id     string     `json:"id"`
-}
-
-// 向fastdfs下载数据请求接口
-type CentreDownloadFileEx struct {
-	Logid    string     `json:"logid"`
-	Id     string     `json:"id"`
-}
-
-// 向fastdfs下载数据返回接口
-type RetCentreDownloadFile struct {
-	Errno  int        `json:"code"`
-	Errmsg string     `json:"message"`
-	Content  []byte   `json:"content"`
-}
-/////////////////////////////////////////////////////////
-
 type FdfsMgr struct {
-	pFdfs   *fdfs_client.FdfsClient
-	Logger  *log.Logger
+	pFdfs  *fdfs_client.FdfsClient
+	Logger *log.Logger
 }
 
 func NewClient(trackerlist []string, lg *log.Logger, minConns int, maxConns int) *FdfsMgr {
@@ -50,20 +16,30 @@ func NewClient(trackerlist []string, lg *log.Logger, minConns int, maxConns int)
 		lg.Errorf("NewClient failed")
 		return nil
 	}
-	
+
 	fd := &FdfsMgr{
-		pFdfs:   pfdfs,
-		Logger:  lg,
+		pFdfs:  pfdfs,
+		Logger: lg,
 	}
 	fd.Logger.Infof("NewClient ok")
 	return fd
 }
 
+func (fdfs *FdfsMgr) HandlerDeleteFile(id string) error {
+	err := fdfs.pFdfs.DeleteFile(id)
+	if err != nil {
+		fdfs.Logger.Errorf("DownloadToBuffer fail, err:%v, id:%+v", err, id)
+		return err
+	}
+
+	return nil
+}
+
 func (fdfs *FdfsMgr) HandlerDownloadFile(id string) (int, []byte) {
-	var ret_buf []byte	
+	var ret_buf []byte
 	downloadResponse, err := fdfs.pFdfs.DownloadToBuffer(id, 0, 0)
 	if err != nil {
-		fdfs.Logger.Errorf("DownloadToBuffer fail, err:%v, id:%+v", 
+		fdfs.Logger.Errorf("DownloadToBuffer fail, err:%v, id:%+v",
 			err, id)
 		return -1, ret_buf
 	}

@@ -1,6 +1,7 @@
 package binlogmgr
 
 import (
+	"../protocal"
 	"fmt"
 	"os"
 	"strings"
@@ -30,35 +31,6 @@ var (
 	g_fd             *os.File
 )
 
-// mysql db of one row
-type DbInfo struct {
-	TaskId           string
-	FileName         string
-	FileType         string
-	FileSize         int32
-	Domain           string
-	Status           int32
-	Action           string
-	Md5Type          int16
-	DnameMd5         string
-	SourceUrl        string
-	TransCodingUrl   string
-	FileMd5          string
-	IndexMd5         string
-	HeadMd5          string
-	ExpiryTime       string
-	CreateTime       string
-	ExecTime         string
-	CbUrl            string
-	FfUri            string
-	TaskBranchStatus string
-	LocalServerDir   string
-	TsUrl            string
-	Type             int8
-	TransCodingInfo  string
-	IsBackup         int8
-}
-
 type TimeInfo struct {
 	hour   int
 	minute int
@@ -67,7 +39,7 @@ type TimeInfo struct {
 
 type BinLogMgr struct {
 	Logger     *log.Logger
-	EventChan  chan *DbInfo
+	EventChan  chan *protocal.DbEventInfo
 	tablename  string
 	start_time TimeInfo
 	end_time   TimeInfo
@@ -80,7 +52,7 @@ func NewBinLogMgr(host_ string, port_ uint16, username_ string,
 
 	my := &BinLogMgr{
 		Logger:    lg,
-		EventChan: make(chan *DbInfo, 10000),
+		EventChan: make(chan *protocal.DbEventInfo, 10000),
 		tablename: "",
 		start_time: TimeInfo{
 			hour:   0,
@@ -130,12 +102,12 @@ func (mgr *BinLogMgr) tracefile(str_content string) {
 	g_fd.Write(buf)
 }
 
-func (mgr *BinLogMgr) Read() *DbInfo {
+func (mgr *BinLogMgr) Read() *protocal.DbEventInfo {
 	info := <-mgr.EventChan
 	return info
 }
 
-func (mgr *BinLogMgr) Write(info *DbInfo) int {
+func (mgr *BinLogMgr) Write(info *protocal.DbEventInfo) int {
 	select {
 	case mgr.EventChan <- info:
 		return 0
@@ -191,9 +163,9 @@ func (mgr *BinLogMgr) RunMoniterMysql() {
 		//		fmt.Printf("type: %+v", reflect.TypeOf(r))
 		//		ev.Dump(os.Stdout)
 
-		//		if ev, ok := r.(*replication.TableMapEvent); ok {
-		//			mgr.tablename = fmt.Sprintf("%s", ev.Table)
-		//		}
+		if evname, okname := r.(*replication.TableMapEvent); okname {
+			mgr.tablename = fmt.Sprintf("%s", evname.Table)
+		}
 
 		if ev, ok := r.(*replication.RowsEvent); ok {
 			mgr.GetDump(ev, mgr.tablename)
@@ -202,13 +174,13 @@ func (mgr *BinLogMgr) RunMoniterMysql() {
 }
 
 func (mgr *BinLogMgr) GetDump(ev *replication.RowsEvent, tablename string) {
-	var data DbInfo
+	var data protocal.DbEventInfo
 	for _, rows := range ev.Rows {
 		for k, d := range rows {
 			if _, ok := d.([]byte); ok {
 				//				mgr.Logger.Infof("type: %+v", reflect.TypeOf(d))
 			} else {
-				GetValue(&data, k, d)
+				GetValue(&data.DbData, k, d)
 			}
 		}
 	}
@@ -216,10 +188,12 @@ func (mgr *BinLogMgr) GetDump(ev *replication.RowsEvent, tablename string) {
 	mgr.Logger.Infof("data: %+v\n", data)
 
 	//data.Status == 200 表示是源数据处理完毕，需要同步， 为1表示是备份数据，不需要同步
-	if data.IsBackup == 0 && data.Status == 200 {
+	if data.DbData.IsBackup == 0 && data.DbData.Status == 200 {
+		data.TableName = tablename
 		// 指定时间同步，需要先写文件
 		if g_sync_part_time {
-			mgr.tracefile(fmt.Sprintf("http://%s/%s/%s", "127.0.0.1", data.Domain, data.FileName))
+			mgr.tracefile(fmt.Sprintf("http://%s/%s/%s", "127.0.0.1",
+				data.DbData.Domain, data.DbData.FileName))
 		} else {
 			if mgr.Write(&data) != 0 {
 				mgr.Logger.Errorf("write to channel fail: %+v\n", data)

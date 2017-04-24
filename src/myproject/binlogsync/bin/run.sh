@@ -1,21 +1,25 @@
 #!/bin/sh
-pid=`pidof binlogsync`
+if [ $# != 1 ];then
+	echo "please input appname"
+	exit 1
+fi
+pid=`pidof $1`
 if [ ! -z $pid ]; then
-		`kill $pid`
+	`kill $pid`
 fi
 
-path="/usr/local/sandai/clustersync"
+path="/usr/local/sandai/cluster/$1"
 logs="$path/logs"
 martini_log="$logs/access.log"
 #echo "$logs"
 
 if [ ! -d "$logs" ];then
-		mkdir -p $logs
-		if [ ! 0 -eq $? ];then
-				echo "mkdir $logs failed."
-				exit $?
-		fi
+	mkdir -p $logs
+	if [ ! 0 -eq $? ];then
+		echo "mkdir $logs failed."
+		exit $?
+	fi
 fi
 
-echo "binlogsync start."
-nohup ./binlogsync --conf="../conf/conf.json" >> $martini_log &
+echo "$1 start."
+nohup ./$1 --conf="../conf/conf.json" >> $martini_log &

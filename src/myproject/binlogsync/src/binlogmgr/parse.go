@@ -1,6 +1,7 @@
 package binlogmgr
 
 import (
+	"../protocal"
 	"time"
 )
 
@@ -52,7 +53,7 @@ func reflectTime(ty interface{}) (string, bool) {
 	return "", false
 }
 
-func GetValue(data *DbInfo, k int, d interface{}) {
+func GetValue(data *protocal.DbInfo, k int, d interface{}) {
 	switch k {
 	case 1:
 		data.TaskId, _ = reflectString(d)

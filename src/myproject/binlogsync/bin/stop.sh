@@ -1,8 +1,12 @@
 #!/bin/sh
-pid=`pidof binlogsync`
-if [ ! -z $pid ]; then
-		echo "kill pid $pid"
-		`kill $pid`
+if [ $# != 1 ];then
+	echo "please input appname"
+	exit 1
 fi
-echo "binlogsync stop."
+pid=`pidof $1`
+if [ ! -z $pid ]; then
+	echo "kill pid $pid"
+	`kill $pid`
+fi
+echo "$1 stop."
 

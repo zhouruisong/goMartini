@@ -1,15 +1,14 @@
 package indexmgr
 
 import (
+	"fmt"
 	"../protocal"
-	"../transfer"
 )
 
-var g_indexMap = make(map[string] protocal.IndexMap)
+var g_indexMap = make(map[string]protocal.IndexMap)
 
-func MapInsertItem(cl *transfer.ClusterMgr, info *protocal.IndexInfo, taskid string) {
-	
-	location := MapSearchItem(cl, taskid)
+func MapInsertItem(info *protocal.IndexInfo, taskid string) {
+	location := MapSearchItem(taskid)
 	if location == nil {
 		var indexMap protocal.IndexMap
 		indexMap.Item = append(indexMap.Item, *info)
@@ -18,27 +17,32 @@ func MapInsertItem(cl *transfer.ClusterMgr, info *protocal.IndexInfo, taskid str
 		location.Item = append(location.Item, *info)
 		g_indexMap[taskid] = *location
 	}
-	
+
 	// 遍历map
-	for k, v := range g_indexMap {
-		cl.Logger.Infof("k:%+v, v:%+v", k, v)
-	}
+	//	for k, v := range g_indexMap {
+	//		cl.Logger.Infof("k:%+v, v:%+v", k, v)
+	//	}
 
 	return
 }
 
-func MapSearchItem(cl *transfer.ClusterMgr, taskid string) *protocal.IndexMap {
+func MapSearchItem(taskid string) *protocal.IndexMap {
 	if v, ok := g_indexMap[taskid]; ok {
-		cl.Logger.Infof("Find In Map, taskid:%+v, v:%+v", taskid, v)
 		return &v
 	} else {
-		cl.Logger.Infof("taskid:%+v Key Not Found", taskid)
 		return nil
 	}
 }
 
-func MapDeleteItem(taskid string) {
+func MapDeleteItem(taskid string) bool {
 	delete(g_indexMap, taskid)
+
+	value, ok := g_indexMap[taskid]
+	if ok {
+		fmt.Println(value)
+		return false
+	} else {
+		fmt.Println("元素不存在")
+		return true
+	}
 }
-
-

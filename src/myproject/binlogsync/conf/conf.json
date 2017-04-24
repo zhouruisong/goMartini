@@ -1,5 +1,5 @@
 {
-    "log_path": "/usr/local/sandai/clustersync/logs",
+    "log_path": "/usr/local/sandai/cluster/binlogsync/logs",
     "mysql_dsn": "root:123456@tcp(localhost:3306)/live_master",
     "mysql_ip": "192.168.110.30",
     "mysql_username": "root",
@@ -11,7 +11,7 @@
     "fdfs_max_connection_count": 5,
     "tair_client": "127.0.0.1:28080",
     "tair_server": ["192.168.110.30:5198","192.168.110.120:5198"],
-    "server_Id": 1,
+    "server_Id": 100,
     "each_sync_num": 200,
     "dbconns": 200,
     "dbidle": 100,
@@ -19,6 +19,6 @@
     "sync_start_time": "00:00",
     "sync_end_time": "23:59",
     "upload_server": "127.0.0.1:10088",
-    "fdfs_standby_ip": "192.168.110.120",
+    "fdfs_standby_ip": "192.168.110.120:3000",
     "is_open": 1
 }
